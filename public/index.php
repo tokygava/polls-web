@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/Controllers/HomeController.php';
 require_once dirname(__DIR__) . '/app/Controllers/AuthController.php';
+require_once dirname(__DIR__) . '/app/Controllers/PollController.php';
 
 $page = $_GET['page'] ?? 'home';
 $method = $_SERVER['REQUEST_METHOD'];
@@ -12,6 +13,7 @@ $allowedMethods = [
     'register' => ['GET', 'HEAD', 'POST'],
     'login' => ['GET', 'HEAD', 'POST'],
     'logout' => ['POST'],
+    'create-poll' => ['GET', 'HEAD', 'POST'],
 ];
 
 if (!is_string($page) || !isset($allowedMethods[$page])) {
@@ -46,9 +48,14 @@ if ($page === 'home') {
     return;
 }
 
-$controller = new AuthController();
-
 try {
+    if ($page === 'create-poll') {
+        (new PollController())->create($method === 'POST');
+        return;
+    }
+
+    $controller = new AuthController();
+
     switch ($page) {
         case 'register':
             $controller->register($method === 'POST');
@@ -61,7 +68,7 @@ try {
             break;
     }
 } catch (PDOException $exception) {
-    error_log('Authentication database error: ' . $exception->getCode());
+    error_log('Database error: ' . $exception->getCode());
     http_response_code(503);
     echo 'База данных временно недоступна.';
 }

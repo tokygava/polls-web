@@ -15,6 +15,10 @@
             </nav>
         <?php else: ?>
             <p>Здравствуйте, <?= htmlspecialchars($user['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>!</p>
+            <?php if ($draftSaved): ?>
+                <p role="status">Черновик опроса сохранён.</p>
+            <?php endif; ?>
+            <p><a href="?page=create-poll">Создать опрос</a></p>
             <form method="post" action="?page=logout">
                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                 <button type="submit">Выйти</button>
