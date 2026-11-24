@@ -57,4 +57,41 @@ final class Poll
             throw $exception;
         }
     }
+
+    public function findDrafts(int $authorId): array
+    {
+        $statement = $this->connection->prepare(
+            'SELECT id, title, description
+             FROM polls
+             WHERE author_id = :author_id AND published_at IS NULL
+             ORDER BY created_at DESC, id DESC'
+        );
+        $statement->execute(['author_id' => $authorId]);
+
+        return $statement->fetchAll();
+    }
+
+    public function findPublished(): array
+    {
+        $statement = $this->connection->query(
+            'SELECT title, description
+             FROM polls
+             WHERE published_at IS NOT NULL
+             ORDER BY published_at DESC, id DESC'
+        );
+
+        return $statement->fetchAll();
+    }
+
+    public function publishDraft(int $authorId, int $pollId): bool
+    {
+        $statement = $this->connection->prepare(
+            'UPDATE polls
+             SET published_at = CURRENT_TIMESTAMP
+             WHERE id = :id AND author_id = :author_id AND published_at IS NULL'
+        );
+        $statement->execute(['id' => $pollId, 'author_id' => $authorId]);
+
+        return $statement->rowCount() === 1;
+    }
 }

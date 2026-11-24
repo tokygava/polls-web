@@ -12,12 +12,7 @@ final class PollController
 
     public function create(bool $submitted): void
     {
-        $user = $_SESSION['user'] ?? null;
-        if ($user === null) {
-            header('Location: ?page=login', true, 303);
-            return;
-        }
-
+        $authorId = $this->requireUserId();
         $csrfToken = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(32));
         $maxQuestions = self::MAX_QUESTIONS;
         $maxOptions = self::MAX_OPTIONS;
@@ -27,11 +22,7 @@ final class PollController
         $errors = [];
 
         if ($submitted) {
-            $providedToken = $_POST['csrf_token'] ?? null;
-            if (!is_string($providedToken) || !hash_equals($csrfToken, $providedToken)) {
-                http_response_code(403);
-                exit('Срок действия формы истёк. Откройте её заново.');
-            }
+            $this->checkCsrfToken();
 
             $title = $this->readText($_POST['title'] ?? null);
             $submittedDescription = $_POST['description'] ?? '';
@@ -50,7 +41,7 @@ final class PollController
 
             if ($errors === []) {
                 $polls = new Poll(Database::connect());
-                $polls->createDraft((int) $user['id'], $title, $description, $questions);
+                $polls->createDraft($authorId, $title, $description, $questions);
                 $_SESSION['draft_saved'] = true;
                 header('Location: ./', true, 303);
                 return;
@@ -60,6 +51,69 @@ final class PollController
         }
 
         require dirname(__DIR__) . '/Views/poll-create.php';
+    }
+
+    public function drafts(): void
+    {
+        $authorId = $this->requireUserId();
+        $csrfToken = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(32));
+        $polls = (new Poll(Database::connect()))->findDrafts($authorId);
+        $isDraftList = true;
+
+        require dirname(__DIR__) . '/Views/poll-list.php';
+    }
+
+    public function published(): void
+    {
+        $polls = (new Poll(Database::connect()))->findPublished();
+        $isDraftList = false;
+
+        require dirname(__DIR__) . '/Views/poll-list.php';
+    }
+
+    public function publish(): void
+    {
+        $authorId = $this->requireUserId();
+        $this->checkCsrfToken();
+        $pollId = filter_var($_POST['poll_id'] ?? null, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1],
+        ]);
+        if ($pollId === false) {
+            http_response_code(400);
+            echo 'Укажите корректный номер опроса.';
+            return;
+        }
+
+        $polls = new Poll(Database::connect());
+        if (!$polls->publishDraft($authorId, $pollId)) {
+            http_response_code(404);
+            echo 'Черновик не найден.';
+            return;
+        }
+
+        header('Location: ?page=polls', true, 303);
+    }
+
+    private function requireUserId(): int
+    {
+        $user = $_SESSION['user'] ?? null;
+        if ($user === null) {
+            header('Location: ?page=login', true, 303);
+            exit;
+        }
+
+        return (int) $user['id'];
+    }
+
+    private function checkCsrfToken(): void
+    {
+        $expectedToken = $_SESSION['csrf_token'] ?? '';
+        $providedToken = $_POST['csrf_token'] ?? null;
+
+        if ($expectedToken === '' || !is_string($providedToken) || !hash_equals($expectedToken, $providedToken)) {
+            http_response_code(403);
+            exit('Срок действия формы истёк. Откройте её заново.');
+        }
     }
 
     private function readQuestions($input, array &$errors): array

@@ -8,6 +8,7 @@
 <body>
     <main>
         <h1>Опросы</h1>
+        <p><a href="?page=polls">Опубликованные опросы</a></p>
         <?php if ($user === null): ?>
             <nav aria-label="Аккаунт">
                 <a href="?page=register">Регистрация</a>
@@ -19,6 +20,7 @@
                 <p role="status">Черновик опроса сохранён.</p>
             <?php endif; ?>
             <p><a href="?page=create-poll">Создать опрос</a></p>
+            <p><a href="?page=drafts">Мои черновики</a></p>
             <form method="post" action="?page=logout">
                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                 <button type="submit">Выйти</button>

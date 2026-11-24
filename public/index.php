@@ -14,6 +14,9 @@ $allowedMethods = [
     'login' => ['GET', 'HEAD', 'POST'],
     'logout' => ['POST'],
     'create-poll' => ['GET', 'HEAD', 'POST'],
+    'drafts' => ['GET', 'HEAD'],
+    'polls' => ['GET', 'HEAD'],
+    'publish-poll' => ['POST'],
 ];
 
 if (!is_string($page) || !isset($allowedMethods[$page])) {
@@ -49,22 +52,27 @@ if ($page === 'home') {
 }
 
 try {
-    if ($page === 'create-poll') {
-        (new PollController())->create($method === 'POST');
-        return;
-    }
-
-    $controller = new AuthController();
-
     switch ($page) {
+        case 'create-poll':
+            (new PollController())->create($method === 'POST');
+            break;
+        case 'drafts':
+            (new PollController())->drafts();
+            break;
+        case 'polls':
+            (new PollController())->published();
+            break;
+        case 'publish-poll':
+            (new PollController())->publish();
+            break;
         case 'register':
-            $controller->register($method === 'POST');
+            (new AuthController())->register($method === 'POST');
             break;
         case 'login':
-            $controller->login($method === 'POST');
+            (new AuthController())->login($method === 'POST');
             break;
         case 'logout':
-            $controller->logout();
+            (new AuthController())->logout();
             break;
     }
 } catch (PDOException $exception) {
