@@ -17,6 +17,7 @@ $allowedMethods = [
     'drafts' => ['GET', 'HEAD'],
     'polls' => ['GET', 'HEAD'],
     'publish-poll' => ['POST'],
+    'poll' => ['GET', 'HEAD', 'POST'],
 ];
 
 if (!is_string($page) || !isset($allowedMethods[$page])) {
@@ -64,6 +65,9 @@ try {
             break;
         case 'publish-poll':
             (new PollController())->publish();
+            break;
+        case 'poll':
+            (new PollController())->viewPoll($method === 'POST');
             break;
         case 'register':
             (new AuthController())->register($method === 'POST');

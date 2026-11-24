@@ -94,6 +94,89 @@ final class PollController
         header('Location: ?page=polls', true, 303);
     }
 
+    public function viewPoll(bool $submitted): void
+    {
+        $userId = isset($_SESSION['user']) ? (int) $_SESSION['user']['id'] : null;
+        if ($submitted) {
+            $userId = $this->requireUserId();
+            $this->checkCsrfToken();
+        }
+
+        $pollId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1],
+        ]);
+        if ($pollId === false) {
+            http_response_code(400);
+            echo 'Укажите корректный номер опроса.';
+            return;
+        }
+
+        $polls = new Poll(Database::connect());
+        $poll = $polls->findPublishedPoll($pollId);
+        if ($poll === null) {
+            http_response_code(404);
+            echo 'Опрос не найден.';
+            return;
+        }
+
+        $hasVoted = $userId !== null && $polls->hasSubmission($pollId, $userId);
+        $csrfToken = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(32));
+        $answers = [];
+        $error = null;
+        $canVote = $poll['questions'] !== [];
+        foreach ($poll['questions'] as $question) {
+            if (count($question['options']) < 2) {
+                $canVote = false;
+                break;
+            }
+        }
+
+        if ($submitted) {
+            if ($hasVoted || !$canVote) {
+                http_response_code(409);
+            } else {
+                $rawAnswers = $_POST['answers'] ?? [];
+                $answers = $this->readAnswers($rawAnswers, $poll['questions']);
+                if (!is_array($rawAnswers) || count($answers) !== count($poll['questions'])
+                    || count($answers) !== count($rawAnswers)) {
+                    http_response_code(422);
+                    $error = 'Выбери по одному варианту ответа для каждого вопроса.';
+                } elseif ($polls->submitVote($pollId, $userId, $answers)) {
+                    header('Location: ?page=poll&id=' . $pollId, true, 303);
+                    return;
+                } elseif ($polls->hasSubmission($pollId, $userId)) {
+                    http_response_code(409);
+                    $hasVoted = true;
+                } else {
+                    http_response_code(404);
+                    echo 'Опрос не найден.';
+                    return;
+                }
+            }
+        }
+
+        require dirname(__DIR__) . '/Views/poll-vote.php';
+    }
+
+    private function readAnswers($input, array $questions): array
+    {
+        if (!is_array($input)) {
+            return [];
+        }
+
+        $answers = [];
+        foreach ($questions as $questionId => $question) {
+            $optionId = filter_var($input[$questionId] ?? null, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 1],
+            ]);
+            if ($optionId !== false && isset($question['options'][$optionId])) {
+                $answers[$questionId] = $optionId;
+            }
+        }
+
+        return $answers;
+    }
+
     private function requireUserId(): int
     {
         $user = $_SESSION['user'] ?? null;

@@ -23,7 +23,13 @@ $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOT
 
         <?php foreach ($polls as $poll): ?>
             <article>
-                <h2><?= $escape($poll['title']) ?></h2>
+                <h2>
+                    <?php if ($isDraftList): ?>
+                        <?= $escape($poll['title']) ?>
+                    <?php else: ?>
+                        <a href="?page=poll&amp;id=<?= (int) $poll['id'] ?>"><?= $escape($poll['title']) ?></a>
+                    <?php endif; ?>
+                </h2>
                 <?php if ($poll['description'] !== ''): ?>
                     <p><?= nl2br($escape($poll['description'])) ?></p>
                 <?php endif; ?>
