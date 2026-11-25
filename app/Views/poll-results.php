@@ -1,25 +1,20 @@
 <?php
 $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$documentTitle = 'Результаты — ' . $results['title'];
+$currentPage = 'poll-results';
+require __DIR__ . '/layout-start.php';
 ?>
-<!doctype html>
-<html lang="ru">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Результаты — <?= $escape($results['title']) ?></title>
-</head>
-<body>
-    <main>
-        <a href="?page=poll&amp;id=<?= $pollId ?>">К опросу</a>
+    <main class="page page-form" id="main" tabindex="-1">
+        <a class="back-link" href="?page=poll&amp;id=<?= $pollId ?>">К опросу</a>
         <h1>Результаты опроса «<?= $escape($results['title']) ?>»</h1>
         <p>Участников: <?= $results['participants'] ?></p>
         <?php if ($results['participants'] === 0): ?>
-            <p>Пока никто не проголосовал.</p>
+            <p class="notice">Пока никто не проголосовал.</p>
         <?php endif; ?>
 
         <?php foreach ($results['questions'] as $question): ?>
             <?php $totalVotes = array_sum(array_column($question['options'], 'votes')); ?>
-            <table>
+            <table class="result-table">
                 <caption><?= $escape($question['prompt']) ?></caption>
                 <thead>
                     <tr>

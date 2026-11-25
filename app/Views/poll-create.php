@@ -1,27 +1,20 @@
 <?php
 $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$documentTitle = 'Создать опрос — Опросы';
+$currentPage = 'create-poll';
+require __DIR__ . '/layout-start.php';
 ?>
-<!doctype html>
-<html lang="ru">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Создать опрос — Опросы</title>
-    <script src="poll-create.js" defer></script>
-</head>
-<body>
-    <main>
-        <a href="./">На главную</a>
+    <main class="page page-form" id="main" tabindex="-1">
         <h1>Создать опрос</h1>
         <?php if ($errors !== []): ?>
-            <ul role="alert">
+            <ul class="notice notice-error" role="alert">
                 <?php foreach ($errors as $error): ?>
                     <li><?= $escape($error) ?></li>
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
 
-        <form method="post" action="?page=create-poll">
+        <form class="panel" method="post" action="?page=create-poll">
             <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
             <p>
                 <label for="title">Название</label>
@@ -54,13 +47,17 @@ $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOT
                                 </p>
                             <?php endforeach; ?>
                         </div>
-                        <button type="button" data-action="add-option" hidden>Добавить вариант</button>
-                        <button type="button" data-action="remove-question" hidden>Удалить вопрос</button>
+                        <div class="actions">
+                            <button type="button" data-action="add-option" hidden>Добавить вариант</button>
+                            <button type="button" data-action="remove-question" hidden>Удалить вопрос</button>
+                        </div>
                     </fieldset>
                 <?php endforeach; ?>
             </div>
-            <p><button type="button" id="add-question" hidden>Добавить вопрос</button></p>
-            <button type="submit">Сохранить черновик</button>
+            <div class="actions">
+                <button class="button button-primary" type="submit">Сохранить черновик</button>
+                <button type="button" id="add-question" hidden>Добавить вопрос</button>
+            </div>
         </form>
     </main>
 </body>
