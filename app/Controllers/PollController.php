@@ -75,14 +75,7 @@ final class PollController
     {
         $authorId = $this->requireUserId();
         $this->checkCsrfToken();
-        $pollId = filter_var($_POST['poll_id'] ?? null, FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1],
-        ]);
-        if ($pollId === false) {
-            http_response_code(400);
-            echo 'Укажите корректный номер опроса.';
-            return;
-        }
+        $pollId = $this->requirePollId($_POST['poll_id'] ?? null);
 
         $polls = new Poll(Database::connect());
         if (!$polls->publishDraft($authorId, $pollId)) {
@@ -102,14 +95,7 @@ final class PollController
             $this->checkCsrfToken();
         }
 
-        $pollId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1],
-        ]);
-        if ($pollId === false) {
-            http_response_code(400);
-            echo 'Укажите корректный номер опроса.';
-            return;
-        }
+        $pollId = $this->requirePollId($_GET['id'] ?? null);
 
         $polls = new Poll(Database::connect());
         $poll = $polls->findPublishedPoll($pollId);
@@ -156,6 +142,31 @@ final class PollController
         }
 
         require dirname(__DIR__) . '/Views/poll-vote.php';
+    }
+
+    public function results(): void
+    {
+        $authorId = $this->requireUserId();
+        $pollId = $this->requirePollId($_GET['id'] ?? null);
+        $results = (new Poll(Database::connect()))->findResults($pollId, $authorId);
+        if ($results === null) {
+            http_response_code(404);
+            echo 'Опрос не найден.';
+            return;
+        }
+
+        require dirname(__DIR__) . '/Views/poll-results.php';
+    }
+
+    private function requirePollId($value): int
+    {
+        $pollId = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($pollId === false) {
+            http_response_code(400);
+            exit('Укажите корректный номер опроса.');
+        }
+
+        return $pollId;
     }
 
     private function readAnswers($input, array $questions): array

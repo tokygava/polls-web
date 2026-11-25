@@ -15,6 +15,9 @@ $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOT
         <?php if ($poll['description'] !== ''): ?>
             <p><?= nl2br($escape($poll['description'])) ?></p>
         <?php endif; ?>
+        <?php if ($userId === $poll['author_id']): ?>
+            <p><a href="?page=poll-results&amp;id=<?= $pollId ?>">Результаты опроса</a></p>
+        <?php endif; ?>
 
         <?php if ($hasVoted): ?>
             <p role="status">Твой голос учтён. Ты уже прошёл этот опрос.</p>

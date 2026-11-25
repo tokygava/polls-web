@@ -98,7 +98,7 @@ final class Poll
     public function findPublishedPoll(int $pollId): ?array
     {
         $statement = $this->connection->prepare(
-            'SELECT p.title, p.description, q.id AS question_id, q.prompt, o.id AS option_id, o.label
+            'SELECT p.title, p.description, p.author_id, q.id AS question_id, q.prompt, o.id AS option_id, o.label
              FROM polls p
              LEFT JOIN poll_questions q ON q.poll_id = p.id
              LEFT JOIN poll_options o ON o.question_id = q.id
@@ -124,7 +124,52 @@ final class Poll
             }
         }
 
-        return ['title' => $rows[0]['title'], 'description' => $rows[0]['description'], 'questions' => $questions];
+        return [
+            'title' => $rows[0]['title'],
+            'description' => $rows[0]['description'],
+            'author_id' => (int) $rows[0]['author_id'],
+            'questions' => $questions,
+        ];
+    }
+
+    public function findResults(int $pollId, int $authorId): ?array
+    {
+        $statement = $this->connection->prepare(
+            'SELECT p.title, q.id AS question_id, q.prompt, o.id AS option_id, o.label,
+                    COUNT(a.option_id) AS votes,
+                    (SELECT COUNT(*) FROM poll_submissions s WHERE s.poll_id = p.id) AS participants
+             FROM polls p
+             LEFT JOIN poll_questions q ON q.poll_id = p.id
+             LEFT JOIN poll_options o ON o.question_id = q.id
+             LEFT JOIN poll_answers a ON a.question_id = q.id AND a.option_id = o.id
+             WHERE p.id = :id AND p.author_id = :author_id AND p.published_at IS NOT NULL
+             GROUP BY p.id, q.id, o.id
+             ORDER BY q.position, o.position'
+        );
+        $statement->execute(['id' => $pollId, 'author_id' => $authorId]);
+        $rows = $statement->fetchAll();
+        if ($rows === []) {
+            return null;
+        }
+
+        $questions = [];
+        foreach ($rows as $row) {
+            $questionId = $row['question_id'];
+            if ($questionId === null) {
+                continue;
+            }
+
+            $questions[$questionId] ??= ['prompt' => $row['prompt'], 'options' => []];
+            if ($row['option_id'] !== null) {
+                $questions[$questionId]['options'][] = ['label' => $row['label'], 'votes' => (int) $row['votes']];
+            }
+        }
+
+        return [
+            'title' => $rows[0]['title'],
+            'participants' => (int) $rows[0]['participants'],
+            'questions' => $questions,
+        ];
     }
 
     public function hasSubmission(int $pollId, int $userId): bool
